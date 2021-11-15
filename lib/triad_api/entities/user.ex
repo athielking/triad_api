@@ -3,6 +3,7 @@ defmodule TriadApi.Entities.User do
   import Ecto.Changeset
   import Bcrypt, only: [add_hash: 2]
 
+  @primary_key {:id, Ecto.UUID, read_after_writes: true, autogenerate: false}
   schema "users" do
     field :email, :string
     field :password_hash, :string

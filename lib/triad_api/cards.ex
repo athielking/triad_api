@@ -51,7 +51,6 @@ defmodule TriadApi.Cards do
 
     %Card{}
     |> Card.changeset(attrs)
-    |> IO.inspect()
     |> Repo.insert!()
   end
 end

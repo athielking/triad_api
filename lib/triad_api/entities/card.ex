@@ -1,5 +1,5 @@
 defmodule TriadApi.Entities.Card do
-  use TriadApi.Schema
+  use Ecto.Schema
   import Ecto.Changeset
 
   schema "cards" do

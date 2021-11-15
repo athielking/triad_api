@@ -1,7 +1,8 @@
 defmodule TriadApi.Entities.Game do
-  use TriadApi.Schema
+  use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, Ecto.UUID, read_after_writes: true, autogenerate: false}
   schema "games" do
     field :playerIdOne, :integer
     field :playerIdTwo, :integer

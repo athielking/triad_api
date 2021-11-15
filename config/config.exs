@@ -31,8 +31,8 @@ config :triad_api, TriadApi.Guardian,
   issuer: "triad_api",
   secret_key: "1kS3SpNiBJPOAy1Zjaa6+ymFXbIaOwYxpvr7LGwNPxDz3BANJuiPny6k52dvuxTJ"
 
-config :triad_api, TriadApi.Repo,
-  migration_primary_key: [name: :id, type: :uuid, autogenerate: false, read_after_writes: true, default: {:fragment, "uuid_generate_v4()"}]
+# config :triad_api, TriadApi.Repo,
+#   migration_primary_key: [name: :id, type: :uuid, autogenerate: false, read_after_writes: true, default: {:fragment, "uuid_generate_v4()"}]
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
