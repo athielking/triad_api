@@ -4,8 +4,8 @@ defmodule TriadApi.Entities.Game do
 
   @primary_key {:id, Ecto.UUID, read_after_writes: true, autogenerate: false}
   schema "games" do
-    field :playerIdOne, :integer
-    field :playerIdTwo, :integer
+    field :playerIdOne, Ecto.UUID, read_after_writes: true, autogenerate: false
+    field :playerIdTwo, Ecto.UUID, read_after_writes: true, autogenerate: false
     field :started_at, :utc_datetime
     field :ended_at, :utc_datetime
     timestamps()
@@ -18,4 +18,5 @@ defmodule TriadApi.Entities.Game do
     game
     |> cast(attrs, [:playerIdOne, :playerIdTwo, :started_at, :ended_at])
   end
+
 end

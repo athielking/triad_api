@@ -33,7 +33,7 @@ defmodule TriadApi.Cards do
       ** (Ecto.NoResultsError)
 
   """
-  def get_Card!(id), do: Repo.get!(Card, id)
+  def get_card!(id), do: Repo.get!(Card, id)
 
   @doc """
   Creates a Game.

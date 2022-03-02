@@ -13,7 +13,7 @@ defmodule TriadApiWeb.UserController do
 
   def create(conn, %{"user" => user_params}) do
     with {:ok, %User{} = user} <- Accounts.create_user(user_params),
-         {:ok, token, _claims} <- TriadApi.Guardian.encode_and_sign(user, %{}, []) do
+         {:ok, token, _claims} <- TriadApi.Guardian.encode_and_sign(user, %{email: user.email}, []) do
       conn
       |> put_status(:created)
       |> render("jwt.json", jwt: token)

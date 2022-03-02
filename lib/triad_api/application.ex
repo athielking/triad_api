@@ -13,6 +13,8 @@ defmodule TriadApi.Application do
       TriadApiWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: TriadApi.PubSub},
+      # Start Presence
+      TriadApiWeb.Presence,
       # Start the Endpoint (http/https)
       TriadApiWeb.Endpoint,
       # Start a worker by calling: TriadApi.Worker.start_link(arg)
@@ -20,7 +22,7 @@ defmodule TriadApi.Application do
 
       #Start the dynamic game server supervisor
       {DynamicSupervisor, name: TriadApi.GameSupervisor, strategy: :one_for_one},
-      {TriadApi.Registry, name: TriadApi.Registry}
+      {Registry, keys: :unique, name: TriadApi.GameRegistry}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

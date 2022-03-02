@@ -1,56 +1,64 @@
-defmodule TriadServerWeb.RoomChannel do
+defmodule TriadApiWeb.RoomChannel do
   use TriadApiWeb, :channel
   alias Games.Triad.GameServer
-  alias TriadApi.Games
+  alias TriadApiWeb.Presence
 
   @impl true
   def join("room:lobby", _payload, socket) do
     IO.puts("Player Joined Lobby")
 
-    {:ok, socket}
-  end
-
-  @impl true
-  def join("room:" <> room_name, payload, socket) do
-    IO.puts("Player Joined #{room_name}")
-
-    %{"game_name" => game_name} = payload
-    {:ok, pid} = get_game_server(game_name, room_name)
-
-    IO.puts "Game Server Joined #{pid}"
-    socket = socket |> assign(:game_pid, pid)
-
+    send self(), :after_join
     {:ok, socket}
   end
 
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
 
-  def handle_in("start_game", _payload, socket) do
+  def handle_in("create_game", payload, socket) do
 
-    IO.puts "Start Game Message Received"
+    IO.puts "Create Game Message Received"
+    %{"game_name" => game_name} = payload
 
     # Create the game record in the DB
-    {:ok, game} = TriadApi.Games.create_game(%{playerIdOne: 1, started_at: DateTime.truncate(DateTime.utc_now(), :second)})
+    {:ok, game} = TriadApi.Games.create_game(%{playerIdOne: socket.assigns.user_id, started_at: DateTime.truncate(DateTime.utc_now(), :second)})
 
     # Start a new game server
-    {:ok, pid} = DynamicSupervisor.start_child(TriadApi.GameSupervisor, Games.Triad.GameServer)
+    {:ok, _pid} = DynamicSupervisor.start_child(TriadApi.GameSupervisor, {Games.Triad.GameServer, %{game_id: game.id}})
 
     # Associate db id with pid
-    Registry.register(TriadApi.GameRegistry, game.id, pid)
+    #TriadApi.Registry.register(game.id, pid)
 
-    {:reply, {:ok, game.id}, socket}
+    Presence.track(self(), "OpenGames", game.id, %{name: game_name})
+    broadcast socket, "game_created", %{game_id: game.id, name: game_name}
+
+    {:reply, {:ok, %{game_id: game.id}}, socket}
   end
 
+  def handle_in("join_game", payload, socket) do
+
+    IO.puts "Join Game Message Received"
+    %{"game_id" => game_id} = payload
+
+    # get the game record in the DB
+    TriadApi.Games.get_game!(game_id) |>
+    TriadApi.Games.update_game(%{playerIdTwo: socket.assigns.user_id})
+
+    Presence.untrack(self(), "OpenGames", game_id)
+    broadcast socket, "game_joined", %{game_id: game_id}
+
+    {:reply, {:ok, %{game_id: game_id}}, socket}
+  end
 
   @impl true
-  def handle_in("start", payload, socket) do
+  def handle_info(:after_join, socket) do
 
-    IO.puts "Start Message Received"
+    {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{name: socket.assigns.user_name})
 
-    game_pid = socket.assigns.game_pid
-    {:ok, game_state} = game_pid |> GameServer.call({:start, payload})
-    {:reply, {:ok, game_state}, socket}
+    push socket, "presence_state", Presence.list(socket)
+    push socket, "game_presence_state", Presence.list("OpenGames")
+    push socket, "user_info", %{user_id: socket.assigns.user_id, name: socket.assigns.user_name}
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -66,8 +74,4 @@ defmodule TriadServerWeb.RoomChannel do
     {:noreply, socket}
   end
 
-  # Private
-  defp get_game_server(_game_name, room_name \\ "default") do
-    {:ok, pid} = Games.Triad.GameServer.start_link(%{room_name: room_name})
-  end
 end

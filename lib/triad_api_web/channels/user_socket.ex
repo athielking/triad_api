@@ -1,8 +1,10 @@
 defmodule TriadApiWeb.UserSocket do
   use Phoenix.Socket
 
+  alias TriadApi.Accounts
   ## Channels
   channel "room:*", TriadApiWeb.RoomChannel
+  channel "game:*", TriadApiWeb.GameChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -16,8 +18,17 @@ defmodule TriadApiWeb.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   @impl true
-  def connect(_params, socket, _connect_info) do
-    {:ok, socket}
+  def connect(params, socket, _connect_info) do
+    %{"token" => token} = params
+    case TriadApi.Guardian.decode_and_verify(token) do
+      {:ok, %{"sub" => user_id}} ->
+        user = Accounts.get_user!(user_id)
+        socket = assign(socket, :user_id, user_id)
+        socket = assign(socket, :user_name, user.email)
+        {:ok, socket}
+      {:error, _} ->
+        :error
+    end
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
@@ -31,5 +42,7 @@ defmodule TriadApiWeb.UserSocket do
   #
   # Returning `nil` makes this socket anonymous.
   @impl true
-  def id(_socket), do: nil
+  def id(socket) do
+    "user_socket:#{socket.assigns.user_id}"
+  end
 end

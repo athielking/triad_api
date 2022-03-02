@@ -11,6 +11,10 @@ defmodule TriadApi.Entities.User do
     # Virtual Fields
     field :password, :string, virtual: true
     field :password_confirmation, :string, virtual: true
+
+    # Associations
+    has_many :decks, TriadApi.Entities.Deck
+
     timestamps()
   end
 

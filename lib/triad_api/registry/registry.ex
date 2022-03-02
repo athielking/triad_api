@@ -6,8 +6,16 @@ defmodule TriadApi.Registry do
     GenServer.call(__MODULE__, {:lookup, name})
   end
 
+  def lookup_pid(pid) do
+    GenServer.call(__MODULE__, {:lookup_pid, pid})
+  end
+
   def register(name, pid) do
     GenServer.call(__MODULE__, {:register, name, pid})
+  end
+
+  def list() do
+    GenServer.call(__MODULE__, {:list})
   end
 
   def start_link (init_args) do
@@ -29,6 +37,12 @@ defmodule TriadApi.Registry do
   end
 
   @impl true
+  def handle_call({:lookup_pid, pid}, _from, state) do
+    {_, refs} = state
+    {:reply, Map.fetch(refs, pid), state}
+  end
+
+  @impl true
   def handle_call({:register, name, pid}, _from, {names, refs}) do
     if Map.has_key?(names, name) do
       {:reply, name, {names, refs}}
@@ -44,6 +58,11 @@ defmodule TriadApi.Registry do
 
       {:reply, name, {names, refs}}
     end
+  end
+
+  @impl true
+  def handle_call({:list}, _from, {names, refs}) do
+    {:reply, refs, {names, refs}}
   end
 
   # Handle Game Processes Failing.  Keep Maps up to date

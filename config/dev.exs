@@ -5,7 +5,7 @@ config :triad_api, TriadApi.Repo,
   username: "postgres",
   password: "postgres",
   database: "triad_api_dev",
-  hostname: "192.168.1.13",
+  hostname: "192.168.1.2",
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
