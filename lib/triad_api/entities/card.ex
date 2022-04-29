@@ -2,6 +2,7 @@ defmodule TriadApi.Entities.Card do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive{Jason.Encoder, only: [:id, :name, :type, :power_left, :power_top, :power_right, :power_bottom]}
   schema "cards" do
     field :name, :string
     field :type, :string

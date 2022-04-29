@@ -2,12 +2,13 @@ defmodule Games.Triad.PlayerState do
   alias Games.Triad.PlayerState
   alias TriadApi.Decks
 
+  @derive{Jason.Encoder, only: [:hand, :deck, :graveyard]}
   defstruct [hand: [], deck: [], graveyard: []]
 
   def init(user_id) do
 
     deck_id = Decks.list_decks(user_id) |> Enum.map( fn d -> d.id end ) |> Enum.at(0)
-    cards = Decks.get_cards!(deck_id) |> Enum.shuffle()
+    cards = Decks.get_cards!(deck_id) |> Enum.map( fn c -> c.id end ) |> Enum.shuffle()
 
     %PlayerState{hand: [], deck: cards, graveyard: []}
   end

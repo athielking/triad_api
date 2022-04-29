@@ -23,7 +23,7 @@ defmodule TriadApiWeb.RoomChannel do
     {:ok, game} = TriadApi.Games.create_game(%{playerIdOne: socket.assigns.user_id, started_at: DateTime.truncate(DateTime.utc_now(), :second)})
 
     # Start a new game server
-    {:ok, _pid} = DynamicSupervisor.start_child(TriadApi.GameSupervisor, {Games.Triad.GameServer, %{game_id: game.id}})
+    {:ok, _pid} = Triad.GameSupervisor.start_game(game.id, 3, 3)
 
     # Associate db id with pid
     #TriadApi.Registry.register(game.id, pid)
@@ -50,19 +50,37 @@ defmodule TriadApiWeb.RoomChannel do
   end
 
   @impl true
+  def handle_in("can_rejoin", payload, socket) do
+    %{"game_id" => game_id} = payload
+
+    {:reply, {:ok, %{can_rejoin: game_id |> GameServer.can_rejoin, game_id: game_id }}, socket}
+  end
+
+  @impl true
   def handle_info(:after_join, socket) do
 
     {:ok, _} = Presence.track(socket, socket.assigns.user_id, %{name: socket.assigns.user_name})
 
     push socket, "presence_state", Presence.list(socket)
     push socket, "game_presence_state", Presence.list("OpenGames")
-    push socket, "user_info", %{user_id: socket.assigns.user_id, name: socket.assigns.user_name}
+
+    active_game = TriadApi.Games.get_active_game?(socket.assigns.user_id)
+
+    payload = if is_nil(active_game) do
+      %{user_id: socket.assigns.user_id, name: socket.assigns.user_name}
+    else
+      %{user_id: socket.assigns.user_id, name: socket.assigns.user_name, active_game: active_game.id}
+    end
+
+    push socket, "user_info", payload
 
     {:noreply, socket}
   end
 
+
   @impl true
   def handle_in("ping", payload, socket) do
+    IO.inspect(payload)
     {:reply, {:ok, payload}, socket}
   end
 

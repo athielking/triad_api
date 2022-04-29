@@ -17,11 +17,9 @@ defmodule TriadApi.Application do
       TriadApiWeb.Presence,
       # Start the Endpoint (http/https)
       TriadApiWeb.Endpoint,
-      # Start a worker by calling: TriadApi.Worker.start_link(arg)
-      # {TriadApi.Worker, arg}
-
       #Start the dynamic game server supervisor
-      {DynamicSupervisor, name: TriadApi.GameSupervisor, strategy: :one_for_one},
+      Triad.GameSupervisor,
+      #Start the registry to allow us to use :via tuples to name our processes
       {Registry, keys: :unique, name: TriadApi.GameRegistry}
     ]
 

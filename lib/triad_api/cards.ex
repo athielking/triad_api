@@ -1,4 +1,5 @@
 defmodule TriadApi.Cards do
+  import Ecto.Query
   @moduledoc """
   The Games Context
   """
@@ -34,6 +35,13 @@ defmodule TriadApi.Cards do
 
   """
   def get_card!(id), do: Repo.get!(Card, id)
+
+  def get_cards!(ids) when is_list(ids) do
+    query = from c in Card,
+      where: c.id in ^ids
+
+    Repo.all(query)
+  end
 
   @doc """
   Creates a Game.

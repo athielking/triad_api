@@ -36,6 +36,12 @@ defmodule TriadApi.Games do
   """
   def get_game!(id), do: Repo.get!(Game, id)
 
+  def get_active_game?(user_id) do
+    query = from g in Game,
+      where: (g.playerIdOne == ^user_id or g.playerIdTwo == ^user_id) and is_nil(g.ended_at)
+
+    query |> last |> Repo.one
+  end
   @doc """
   Creates a Game.
 
