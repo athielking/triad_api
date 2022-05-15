@@ -7,8 +7,6 @@ defmodule TriadApiWeb.GameChannel do
   def join("game:" <> game_id, _payload, socket) do
     if authorized?(game_id, socket) do
       socket = assign(socket, :game_id, game_id)
-      TriadApiWeb.Endpoint.subscribe("card_flipped")
-
       {:ok, socket}
     else
       {:error, %{reason: "Game Not Found"}}
@@ -27,6 +25,7 @@ defmodule TriadApiWeb.GameChannel do
 
     if state |> Map.has_key?(id_one) && state |> Map.has_key?(id_two) do
       IO.puts("Game State has both players. game_started fired")
+      :ok = TriadApiWeb.Endpoint.subscribe("card_flipped")
       send self(), :game_started
     end
 
@@ -55,14 +54,19 @@ defmodule TriadApiWeb.GameChannel do
 
   @impl true
   def handle_in("valid_placements", payload, socket) do
+    #payloads from Godot come in the form of string keys
+    %{"card_id" => card_id} = payload
 
+    {:ok, valid_placements} = GameWorker.valid_placements(socket.assigns.game_id, card_id)
+    {:reply, {:ok, valid_placements}, socket}
   end
 
   @impl true
   def handle_in("place_card", payload, socket) do
-    %{x: x, y: y, card_id: card_id} = payload
+    #payloads from Godot come in the form of string keys
+    %{"x" => x, "y" => y, "card_id" => card_id} = payload
 
-    {:ok, state} = GameWorker.place_card(socket.assigns.game_id, card_id, x, y, socket.assigns.player_id)
+    {:ok, state} = GameWorker.place_card(socket.assigns.game_id, card_id, x, y, socket.assigns.user_id)
 
     broadcast socket, "place_card", %{x: state.x, y: state.y, card_id: card_id, controlled_by: state.controlled_by}
 
@@ -81,6 +85,8 @@ defmodule TriadApiWeb.GameChannel do
   end
 
   def handle_info({:card_flipped, %{x: x, y: y, controlled_by: user_id}}, socket) do
+
+    IO.puts("Card Flipped")
 
     broadcast socket, "card_flipped", %{x: x, y: y, controlled_by: user_id}
 

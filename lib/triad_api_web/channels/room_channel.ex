@@ -1,7 +1,7 @@
 defmodule TriadApiWeb.RoomChannel do
   use TriadApiWeb, :channel
-  alias Games.Triad.GameServer
   alias TriadApiWeb.Presence
+  alias Triad.GameWorker
 
   @impl true
   def join("room:lobby", _payload, socket) do
@@ -53,7 +53,10 @@ defmodule TriadApiWeb.RoomChannel do
   def handle_in("can_rejoin", payload, socket) do
     %{"game_id" => game_id} = payload
 
-    {:reply, {:ok, %{can_rejoin: game_id |> GameServer.can_rejoin, game_id: game_id }}, socket}
+    response = %{can_rejoin: game_id |> GameWorker.can_rejoin, game_id: game_id }
+    IO.inspect(response)
+
+    {:reply, {:ok, response}, socket}
   end
 
   @impl true

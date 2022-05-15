@@ -43,7 +43,8 @@ defmodule Triad.GameSlotWorker do
   end
 
   def handle_call({:place_card, payload}, _from, state) do
-    %{max_x: max_x, max_y: max_y} = Triad.GameStateWorker.get_state(state.game_id)
+    {:ok, game_state} = Triad.GameStateWorker.get_state(state.game_id)
+    %{max_x: max_x, max_y: max_y} = game_state
     %{x: x, y: y} = state
     %{card_id: card_id, player_id: player_id} = payload
 
@@ -53,22 +54,42 @@ defmodule Triad.GameSlotWorker do
 
     card_payload = %{card: card, controlling_player: state.controlled_by, x: x, y: y}
 
-    cond do
-      x != max_x -> Triad.GameSlotWorker.via_tuple(state.game_id, x + 1, y) |> GenServer.cast({:card_placed, card_payload})
-      x != 1 -> Triad.GameSlotWorker.via_tuple(state.game_id, x-1, y) |> GenServer.cast({:card_placed, card_payload})
-      y != max_y -> Triad.GameSlotWorker.via_tuple(state.game_id, x, y + 1) |> GenServer.cast({:card_placed, card_payload})
-      y != 1 -> Triad.GameSlotWorker.via_tuple(state.game_id, x, y-1) |> GenServer.cast({:card_placed, card_payload})
-    end
+
+      if x != max_x do
+        IO.puts("Checking Card to the right")
+        Triad.GameSlotWorker.via_tuple(state.game_id, x + 1, y) |> GenServer.cast({:card_placed, card_payload})
+      end
+
+      if x != 1 do
+        IO.puts("Checking Card to the left")
+        Triad.GameSlotWorker.via_tuple(state.game_id, x-1, y) |> GenServer.cast({:card_placed, card_payload})
+      end
+
+      if y != max_y do
+        IO.puts("Checking Card Below")
+        Triad.GameSlotWorker.via_tuple(state.game_id, x, y + 1) |> GenServer.cast({:card_placed, card_payload})
+      end
+
+      if y != 1 do
+        IO.puts("Checking Card Above")
+        Triad.GameSlotWorker.via_tuple(state.game_id, x, y-1) |> GenServer.cast({:card_placed, card_payload})
+      end
 
     {:reply, {:ok, state}, state}
   end
 
-  def handle_cast({:card_placed, %{card: placed_card, controlled_by: player_id, x: from_x, y: from_y}}, state) do
-
+  def handle_cast({:card_placed, %{card: placed_card, controlling_player: player_id, x: from_x, y: from_y}}, state) do
     case state do
-      %{cards: []} -> {:noreply, state}
-      %{controlled_by: current_controller} when current_controller === player_id -> {:noreply, state}
+      %{cards: []} ->
+        IO.puts("No Cards in slot")
+        {:noreply, state}
+      %{controlled_by: current_controller} when current_controller === player_id ->
+        IO.puts("Card Controlled by Same Player")
+        {:noreply, state}
       %{cards: [card | _], x: x, y: y} ->
+
+        IO.puts("Card Placed at #{from_x},#{from_y}. Evaluating #{x},#{y}")
+
         {placed_power, power} = case {from_x, from_y, placed_card} do
           {from_x, _, placed_card} when from_x > x -> {placed_card.power_left, card.power_right}
           {from_x, _, placed_card} when from_x < x -> {placed_card.power_right, card.power_left}
@@ -76,11 +97,16 @@ defmodule Triad.GameSlotWorker do
           {_, from_y, placed_card} when from_y < y -> {placed_card.power_bottom, card.power_top}
         end
 
+        IO.puts("Placed Power #{placed_power} Card Power #{power}")
+
         case {placed_power, power} do
           {placed_power, power} when placed_power > power ->
+            IO.puts("Flipping Card")
             PubSub.broadcast(TriadApi.PubSub, "card_flipped", {:card_flipped, %{x: x, y: y, controlled_by: player_id}})
             {:noreply, %{state | controlled_by: player_id}}
-          _ -> {:noreply, state}
+          _ ->
+            IO.puts("Power not greater, no flip")
+            {:noreply, state}
         end
     end
 

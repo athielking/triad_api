@@ -45,8 +45,15 @@ defmodule Triad.GameStateWorker  do
     state = if length(state.players) < 2 do
       %{state| players: [player_id | state.players]}
     else
+      state
+    end
+
+    state = if length(state.players) == 2 do
       index = rem(:os.system_time(:millisecond), 2)
-      %{state| active: state.players[index]}
+
+      %{state| active: Enum.at(state.players, index)}
+    else
+      state
     end
 
     state = if not(state |> Map.has_key?(player_id)) do

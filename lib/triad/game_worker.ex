@@ -3,6 +3,8 @@ defmodule Triad.GameWorker do
   alias Triad.GameStateWorker
   alias TriadApi.Cards
 
+  @spec start_link(%{:game_id => any, optional(any) => any}) ::
+          :ignore | {:error, any} | {:ok, pid}
   def start_link (init_args) do
     %{game_id: game_id} = init_args
 
@@ -14,7 +16,8 @@ defmodule Triad.GameWorker do
   end
 
   def can_rejoin(game_id) do
-    via_tuple(game_id) |> GenServer.whereis != nil
+    #via_tuple(game_id) |> GenServer.whereis != nil
+    false
   end
 
   def rejoin(game_id, user_id) do
@@ -75,7 +78,7 @@ defmodule Triad.GameWorker do
   def handle_call({:draw_card, player_id}, _from, state) do
     %{game_id: game_id} = state
 
-    game_state = GameStateWorker.get_state(game_id)
+    {:ok, game_state} = GameStateWorker.get_state(game_id)
     player_state = game_state[player_id]
 
     [drawn] = player_state.deck |> Enum.take(1)
@@ -132,8 +135,8 @@ defmodule Triad.GameWorker do
     {:reply, {:ok, rejoin_state }, state}
   end
 
-  def handle_call({:get_active_player}, _from, state) do
-    %{active: active_player} = GameStateWorker.get_state(state.game_id)
+  def handle_call(:get_active_player, _from, state) do
+    {:ok, %{active: active_player}} = GameStateWorker.get_state(state.game_id)
 
     {:reply, {:ok, active_player}, state}
   end
@@ -158,6 +161,8 @@ defmodule Triad.GameWorker do
   def handle_call({:place_card, %{x: x, y: y, card_id: card_id, player_id: player_id}}, _from, state) do
     %{game_id: game_id} = state
 
-    Triad.GameSlotWorker.place_card(%{game_id: game_id, x: x, y: y, card_id: card_id, player_id: player_id})
+    {:ok, placed} = Triad.GameSlotWorker.place_card(%{game_id: game_id, x: x, y: y, card_id: card_id, player_id: player_id})
+
+    {:reply, {:ok, placed}, state}
   end
 end

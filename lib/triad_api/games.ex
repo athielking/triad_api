@@ -38,9 +38,10 @@ defmodule TriadApi.Games do
 
   def get_active_game?(user_id) do
     query = from g in Game,
-      where: (g.playerIdOne == ^user_id or g.playerIdTwo == ^user_id) and is_nil(g.ended_at)
+      where: (g.playerIdOne == ^user_id or g.playerIdTwo == ^user_id) and is_nil(g.ended_at),
+      order_by: [desc: g.started_at]
 
-    query |> last |> Repo.one
+    query |> first |> Repo.one
   end
   @doc """
   Creates a Game.
